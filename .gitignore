@@ -1,0 +1,40 @@
+# Segredos
+.env
+
+# Dados locais (banco, fotos, backups) - a estrutura de pastas fica versionada
+data/*.db
+data/*.db-journal
+data/images/
+data/photos/
+data/backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Ferramentas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Sistema
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Diagnostico de crash nativo
+data/ultima_falha.txt
