@@ -48,8 +48,8 @@ lógica é testável sem abrir janela, e as telas só montam widgets.
 
 | Tela | O que faz |
 | --- | --- |
-| **Presença** | Abre evento, reconhece rostos ao vivo e registra presença |
-| **Eventos** | Histórico, lista de presença de cada evento e relatórios |
+| **Presença** | Reconhece rostos ao vivo e registra presença no evento aberto |
+| **Eventos** | Abre e encerra eventos, histórico, listas de presença e relatórios |
 | **Membros** | Lista com busca, edição e remoção de cadastros |
 | **Cadastro** | Registro individual capturando o rosto pela webcam |
 | **Cadastro em lote** | Importa CSV/Excel, vincula fotos e processa |
@@ -65,6 +65,11 @@ O CSV usa o **separador de lista da região do Windows** (`;` em pt-BR), lido
 do registro — a mesma fonte que o Excel consulta. Com a vírgula padrão do
 Python, o Excel brasileiro abria o arquivo com tudo amontoado numa coluna só.
 A gravação é em `utf-8-sig`: sem o BOM, os acentos saem errados.
+
+Abrir e encerrar evento fica na tela de **Eventos**, junto do histórico; a
+tela de Presença apenas mostra qual evento está em curso. O relatório só
+libera depois de encerrar — enquanto o evento corre a lista ainda muda, e um
+arquivo exportado no meio vira um número errado circulando por aí.
 
 Só um evento fica aberto por vez: abrir um novo encerra o anterior. Sem essa
 garantia o segundo evento ficaria invisível — a busca devolve apenas o

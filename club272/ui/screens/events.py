@@ -15,7 +15,7 @@ from club272.core import exportacao
 from club272.core.database import DatabaseManager
 from club272.ui.components import Badge, Botao, Card, EstadoVazio, Metrica, Tabela
 from club272.ui.shell import Tela
-from club272.ui.theme import Cor, Espaco, Fonte
+from club272.ui.theme import Cor, Espaco, Fonte, Raio
 
 
 def _data_curta(iso):
@@ -43,15 +43,84 @@ class TelaEventos(Tela):
     def construir(self):
         self.grid_columnconfigure(0, weight=2)
         self.grid_columnconfigure(1, weight=3)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
+        self._construir_controle()
         self._construir_indicadores()
         self._construir_lista()
         self._construir_detalhe()
 
+    def _construir_controle(self):
+        """Abrir e encerrar evento. Fica aqui, junto do histórico, e não no
+        meio da tela de captura."""
+        faixa = ctk.CTkFrame(self, fg_color=Cor.SUPERFICIE, corner_radius=Raio.LG)
+        faixa.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, Espaco.LG))
+
+        interno = ctk.CTkFrame(faixa, fg_color="transparent")
+        interno.pack(fill="x", padx=Espaco.XL, pady=Espaco.LG)
+
+        esquerda = ctk.CTkFrame(interno, fg_color="transparent")
+        esquerda.pack(side="left")
+
+        ctk.CTkLabel(
+            esquerda, text="EVENTO EM CURSO", font=Fonte.MICRO,
+            text_color=Cor.TEXTO_APAGADO, anchor="w",
+        ).pack(anchor="w")
+
+        self.label_atual = ctk.CTkLabel(
+            esquerda, text="—", font=Fonte.SUBTITULO, text_color=Cor.TEXTO,
+            anchor="w",
+        )
+        self.label_atual.pack(anchor="w")
+
+        self.entrada_nome = ctk.CTkEntry(
+            interno, placeholder_text="Nome do novo evento", width=260, height=40,
+            corner_radius=Raio.MD, fg_color=Cor.SUPERFICIE_ALTA,
+            border_color=Cor.BORDA, font=Fonte.CORPO,
+        )
+        self.entrada_nome.pack(side="left", padx=Espaco.XL)
+        self.entrada_nome.bind("<Return>", lambda _: self._alternar_evento())
+
+        self.botao_evento = Botao(
+            interno, "Abrir evento", "primario", width=160,
+            command=self._alternar_evento,
+        )
+        self.botao_evento.pack(side="right")
+
+    def _alternar_evento(self):
+        aberto = self.db.buscar_evento_aberto()
+        if aberto:
+            self.db.fechar_evento(aberto["id"])
+            self.app.status(f"Evento '{aberto['nome']}' encerrado", Cor.SUCESSO)
+            self.selecionado = self.db.buscar_evento(aberto["id"])
+        else:
+            nome = self.entrada_nome.get().strip()
+            if not nome:
+                self.app.status("Informe um nome para o evento", Cor.ALERTA)
+                return
+            self.db.criar_evento(nome)
+            self.entrada_nome.delete(0, "end")
+            self.app.status(f"Evento '{nome}' aberto", Cor.SUCESSO)
+            self.selecionado = self.db.buscar_evento_aberto()
+
+        self.ao_entrar()
+
+    def _atualizar_controle(self, aberto):
+        if aberto:
+            self.label_atual.configure(text=aberto["nome"], text_color=Cor.TEXTO)
+            self.botao_evento.configure(text="Encerrar evento", fg_color=Cor.PERIGO,
+                                        hover_color=Cor.PERIGO_HOVER)
+            self.entrada_nome.configure(state="disabled")
+        else:
+            self.label_atual.configure(text="Nenhum evento aberto",
+                                       text_color=Cor.TEXTO_APAGADO)
+            self.botao_evento.configure(text="Abrir evento", fg_color=Cor.ACENTO,
+                                        hover_color=Cor.ACENTO_HOVER)
+            self.entrada_nome.configure(state="normal")
+
     def _construir_indicadores(self):
         faixa = ctk.CTkFrame(self, fg_color="transparent")
-        faixa.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, Espaco.LG))
+        faixa.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, Espaco.LG))
         faixa.grid_columnconfigure((0, 1, 2), weight=1, uniform="m")
 
         self.m_total = Metrica(faixa, "eventos", 0, Cor.ACENTO)
@@ -65,7 +134,7 @@ class TelaEventos(Tela):
 
     def _construir_lista(self):
         card = Card(self, titulo="Todos os eventos")
-        card.grid(row=1, column=0, sticky="nsew", padx=(0, Espaco.LG))
+        card.grid(row=2, column=0, sticky="nsew", padx=(0, Espaco.LG))
 
         self.area_lista = ctk.CTkFrame(card.corpo, fg_color="transparent")
         self.area_lista.pack(fill="both", expand=True)
@@ -73,7 +142,7 @@ class TelaEventos(Tela):
 
     def _construir_detalhe(self):
         card = Card(self, titulo="Lista de presença")
-        card.grid(row=1, column=1, sticky="nsew")
+        card.grid(row=2, column=1, sticky="nsew")
         self.area_detalhe = card.corpo
         self._mostrar_sem_selecao()
 
@@ -89,6 +158,7 @@ class TelaEventos(Tela):
         )
 
         aberto = next((e for e in self.eventos if e["status"] == "aberto"), None)
+        self._atualizar_controle(aberto)
         if aberto:
             self.app.badge(f"{aberto['nome']} em andamento", "sucesso")
         else:
@@ -201,8 +271,25 @@ class TelaEventos(Tela):
         acoes = ctk.CTkFrame(self.area_detalhe, fg_color="transparent")
         acoes.pack(fill="x", pady=(Espaco.LG, 0))
 
-        Botao(acoes, "Exportar lista de presença", "primario",
-              command=self._exportar).pack(fill="x", pady=(0, Espaco.SM))
+        # Relatório só depois de encerrar: enquanto o evento corre, a lista
+        # ainda vai mudar, e um arquivo exportado no meio vira um número
+        # errado circulando por aí.
+        self.botao_exportar = Botao(
+            acoes,
+            "Exportar lista de presença" if not aberto
+            else "Encerre o evento para exportar",
+            "primario",
+            command=self._exportar,
+            state="disabled" if aberto else "normal",
+        )
+        self.botao_exportar.pack(fill="x", pady=(0, Espaco.SM))
+
+        if aberto:
+            ctk.CTkLabel(
+                acoes,
+                text="O evento está em andamento — a lista ainda pode mudar.",
+                font=Fonte.MICRO, text_color=Cor.TEXTO_APAGADO,
+            ).pack(pady=(0, Espaco.SM))
 
         self.botao_remover = Botao(
             acoes, "Apagar evento", "fantasma", command=self._remover
@@ -212,6 +299,13 @@ class TelaEventos(Tela):
     # ===== AÇÕES =====
     def _exportar(self):
         evento = self.selecionado
+
+        # Rede de segurança: o botão já fica desabilitado com o evento aberto.
+        if evento["status"] == "aberto":
+            self.app.status("Encerre o evento antes de exportar o relatório",
+                            Cor.ALERTA)
+            return
+
         presencas = self.db.listar_presencas_evento(evento["id"])
         if not presencas:
             self.app.status("Este evento não tem presenças para exportar",

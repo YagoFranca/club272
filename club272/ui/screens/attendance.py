@@ -52,6 +52,8 @@ class TelaPresenca(Tela):
         self._construir_coluna_lateral()
 
     def _construir_faixa_evento(self):
+        """Mostra o evento em curso. Abrir e encerrar é na tela de Eventos —
+        gestão de evento fica junto do histórico, não no meio da captura."""
         faixa = ctk.CTkFrame(self, fg_color=Cor.SUPERFICIE, corner_radius=Raio.LG)
         faixa.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, Espaco.LG))
 
@@ -62,8 +64,8 @@ class TelaPresenca(Tela):
         esquerda.pack(side="left")
 
         ctk.CTkLabel(
-            esquerda, text="EVENTO", font=Fonte.MICRO, text_color=Cor.TEXTO_APAGADO,
-            anchor="w",
+            esquerda, text="EVENTO EM CURSO", font=Fonte.MICRO,
+            text_color=Cor.TEXTO_APAGADO, anchor="w",
         ).pack(anchor="w")
 
         self.label_evento = ctk.CTkLabel(
@@ -71,18 +73,16 @@ class TelaPresenca(Tela):
         )
         self.label_evento.pack(anchor="w")
 
-        self.entrada_evento = ctk.CTkEntry(
-            interno, placeholder_text="Nome do novo evento", width=260, height=40,
-            corner_radius=Raio.MD, fg_color=Cor.SUPERFICIE_ALTA,
-            border_color=Cor.BORDA, font=Fonte.CORPO,
+        self.botao_ir_eventos = Botao(
+            interno, "Abrir um evento", "primario", width=170,
+            command=lambda: self.app.navegar("eventos"),
         )
-        self.entrada_evento.pack(side="left", padx=Espaco.XL)
+        self.botao_ir_eventos.pack(side="right")
 
-        self.botao_evento = Botao(
-            interno, "Abrir evento", "primario", width=150,
-            command=self._alternar_evento,
+        self.label_dica_evento = ctk.CTkLabel(
+            interno, text="", font=Fonte.PEQUENO, text_color=Cor.TEXTO_APAGADO,
         )
-        self.botao_evento.pack(side="right")
+        self.label_dica_evento.pack(side="right", padx=Espaco.LG)
 
     def _construir_coluna_video(self):
         card = Card(self, titulo="Câmera")
@@ -156,6 +156,9 @@ class TelaPresenca(Tela):
 
     # ===== CICLO DE VIDA =====
     def ao_entrar(self):
+        # Relê do banco: o evento pode ter sido aberto ou encerrado na tela
+        # de Eventos enquanto esta ficou fora de vista.
+        self.evento = self.db.buscar_evento_aberto()
         self._atualizar_evento()
         self._carregar_presencas()
         self._atualizar_metricas()
@@ -166,38 +169,19 @@ class TelaPresenca(Tela):
         if self.camera_ligada:
             self._parar_camera()
 
-    # ===== EVENTO =====
-    def _alternar_evento(self):
-        if self.evento:
-            self.db.fechar_evento(self.evento["id"])
-            self.evento = None
-            self.app.status("Evento encerrado", Cor.TEXTO_SECUNDARIO)
-        else:
-            nome = self.entrada_evento.get().strip()
-            if not nome:
-                self.app.status("Informe um nome para o evento", Cor.ALERTA)
-                return
-            self.db.criar_evento(nome)
-            self.evento = self.db.buscar_evento_aberto()
-            self.entrada_evento.delete(0, "end")
-            self.app.status(f"Evento '{nome}' aberto", Cor.SUCESSO)
-
-        self._atualizar_evento()
-        self._carregar_presencas()
-        self._atualizar_metricas()
-
     def _atualizar_evento(self):
         if self.evento:
-            self.label_evento.configure(text=self.evento["nome"])
-            self.botao_evento.configure(text="Encerrar evento", fg_color=Cor.PERIGO,
-                                        hover_color=Cor.PERIGO_HOVER)
-            self.entrada_evento.configure(state="disabled")
+            self.label_evento.configure(text=self.evento["nome"], text_color=Cor.TEXTO)
+            self.botao_ir_eventos.configure(text="Ver na tela de Eventos")
+            self.label_dica_evento.configure(text="")
             self.app.badge("Evento aberto", "sucesso")
         else:
-            self.label_evento.configure(text="Nenhum evento aberto")
-            self.botao_evento.configure(text="Abrir evento", fg_color=Cor.ACENTO,
-                                        hover_color=Cor.ACENTO_HOVER)
-            self.entrada_evento.configure(state="normal")
+            self.label_evento.configure(text="Nenhum evento aberto",
+                                        text_color=Cor.TEXTO_APAGADO)
+            self.botao_ir_eventos.configure(text="Abrir um evento")
+            self.label_dica_evento.configure(
+                text="A câmera só liga com um evento aberto."
+            )
             self.app.badge("Sem evento", "neutro")
 
     # ===== CÂMERA =====
@@ -206,7 +190,8 @@ class TelaPresenca(Tela):
 
     def _iniciar_camera(self):
         if not self.evento:
-            self.app.status("Abra um evento antes de iniciar a câmera", Cor.ALERTA)
+            self.app.status("Abra um evento na tela de Eventos para iniciar a câmera",
+                            Cor.ALERTA)
             return
 
         if not self.camera.iniciar():
