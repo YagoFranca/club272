@@ -80,6 +80,13 @@ separado, o pior travamento da interface caiu de 505 ms para 72 ms.
 Medido em 3 s de cada cenário: sala vazia **0 encodings**; estranho parado
 **1**; cadastrado **3** (as confirmações) e então rastreado.
 
+O portão de movimento tem duas salvaguardas. A referência só é trocada quando
+a análise de fato acontece — comparar sempre com o quadro anterior esconde
+movimento lento, e o laço gira mais rápido que a câmera, então boa parte das
+comparações seria de um quadro com ele mesmo. E um batimento força a análise a
+cada `INTERVALO_BATIMENTO`, limitando o atraso máximo para notar alguém mesmo
+que o movimento nunca supere o limiar.
+
 A detecção usa Haar em vez do HOG do dlib. Verificamos que trocar a caixa do
 HOG pela do Haar desloca o encoding em **0,086**, contra uma tolerância de
 0,45 — não muda o veredito. E a caixa ainda é refinada com HOG no recorte.
@@ -92,7 +99,22 @@ O perfil leve já é o padrão (câmera 480×360, 15 fps, detector Haar):
 CLUB272_PERFIL=normal    # máquina boa: 640x480, 30 fps
 DETECTOR=hog             # detector mais preciso, 2,6x mais caro
 FILTRO_MOVIMENTO=0       # desliga o portão de movimento
+INTERVALO_BATIMENTO=1.5  # segundos entre análises forçadas
 FACE_TOLERANCE=0.45      # menor = mais rigoroso
+CLUB272_DB=caminho.db    # usa outro banco (testes, experimentos)
+```
+
+### Escolha da câmera
+
+Por padrão (`CAMERA_INDICE=auto`) o sistema sonda os dispositivos e fica no
+primeiro que entrega imagem de verdade. Isso existe porque câmeras virtuais
+(NVIDIA Broadcast, OBS) costumam ocupar o índice 0 e **abrir com sucesso
+devolvendo quadros pretos** — a prévia ficava escura sem nenhuma explicação.
+
+```bash
+CAMERA_INDICE=2          # força um dispositivo específico
+CAMERA_MAX_INDICE=4      # quantos sondar na busca automática
+CAMERA_DESVIO_MINIMO=1.0 # desvio padrão mínimo para o quadro valer como imagem
 ```
 
 ## Banco de dados

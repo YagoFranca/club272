@@ -22,7 +22,9 @@ PHOTOS_DIR = DATA_DIR / "photos"
 BACKUPS_DIR = DATA_DIR / "backups"
 TEMPLATES_DIR = BASE_DIR / "templates"
 
-DB_PATH = str(DATA_DIR / "sistema_integrado.db")
+# `CLUB272_DB` aponta para outro arquivo — usado pelos testes de ponta a
+# ponta, e útil para experimentar sem tocar no banco de produção.
+DB_PATH = os.environ.get("CLUB272_DB") or str(DATA_DIR / "sistema_integrado.db")
 
 LOGO_PATH = str(ASSETS_DIR / "272club.png")
 ICON_PATH = str(ASSETS_DIR / "272club.ico")
@@ -104,6 +106,18 @@ PERFIL_LEVE = os.environ.get("CLUB272_PERFIL", "leve").lower() == "leve"
 
 # Resolução de captura. Mais pixels não melhoram o reconhecimento e custam
 # banda de barramento e CPU na conversão.
+# Índice do dispositivo. "auto" procura o primeiro que entregue imagem de
+# verdade — câmeras virtuais (NVIDIA Broadcast, OBS) costumam ocupar o índice
+# 0 e devolver quadros pretos, o que antes aparecia como uma prévia preta sem
+# explicação nenhuma.
+CAMERA_INDICE = os.environ.get("CAMERA_INDICE", "auto")
+
+# Quantos dispositivos sondar na busca automática.
+CAMERA_MAX_INDICE = int(os.environ.get("CAMERA_MAX_INDICE", "4"))
+
+# Desvio padrão mínimo do quadro para considerá-lo imagem, e não tela preta.
+CAMERA_DESVIO_MINIMO = float(os.environ.get("CAMERA_DESVIO_MINIMO", "1.0"))
+
 CAMERA_LARGURA = int(os.environ.get("CAMERA_LARGURA", "480" if PERFIL_LEVE else "640"))
 CAMERA_ALTURA = int(os.environ.get("CAMERA_ALTURA", "360" if PERFIL_LEVE else "480"))
 
@@ -137,3 +151,8 @@ LARGURA_MINIMA_ROSTO = float(os.environ.get("LARGURA_MINIMA_ROSTO", "0.16"))
 # consumo com a sala vazia.
 FILTRO_MOVIMENTO = os.environ.get("FILTRO_MOVIMENTO", "1") == "1"
 LIMIAR_MOVIMENTO = float(os.environ.get("LIMIAR_MOVIMENTO", "1.5"))
+
+# Mesmo sem movimento, o pipeline roda pelo menos uma vez neste intervalo.
+# É a rede de segurança do portão: sem ela, quem entra devagar ou com pouco
+# contraste nunca abre o portão e jamais é detectado.
+INTERVALO_BATIMENTO = float(os.environ.get("INTERVALO_BATIMENTO", "1.5"))

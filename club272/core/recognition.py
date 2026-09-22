@@ -373,18 +373,19 @@ class Camera:
     vivo.
     """
 
-    def __init__(self, indice=0, largura=None, altura=None):
-        self.indice = indice
+    def __init__(self, indice=None, largura=None, altura=None):
+        self.indice = indice if indice is not None else config.CAMERA_INDICE
         self.largura = largura or config.CAMERA_LARGURA
         self.altura = altura or config.CAMERA_ALTURA
         self._frame = None
         self._lock = threading.Lock()
         self._rodando = False
         self._thread = None
+        self.indice_em_uso = None
         self._pronta = threading.Event()
         self._falhou = threading.Event()
 
-    def iniciar(self, espera=8.0):
+    def iniciar(self, espera=25.0):
         """Abre o dispositivo e começa a capturar. False se não conseguir."""
         if self._rodando:
             return True
@@ -408,19 +409,79 @@ class Camera:
         self.parar()
         return False
 
+    # A sondagem é lenta (abre e lê de vários dispositivos). Descoberto uma
+    # vez, o índice vale para as próximas aberturas do processo.
+    _indice_descoberto = None
+
     def _abrir(self):
-        """Tenta abrir a webcam. DSHOW primeiro: no Windows abre bem mais
-        rápido que o backend padrão."""
-        for backend in (cv2.CAP_DSHOW, cv2.CAP_ANY):
-            cap = cv2.VideoCapture(self.indice, backend)
-            if cap.isOpened():
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.largura)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.altura)
-                # Buffer curto: evita exibir imagem velha da fila do driver.
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        """Abre um dispositivo que realmente entregue imagem.
+
+        Com `CAMERA_INDICE=auto`, sonda os índices e fica no primeiro cujos
+        quadros não sejam uma tela preta. Câmeras virtuais (NVIDIA Broadcast,
+        OBS) costumam ocupar o índice 0 e abrir com sucesso devolvendo preto —
+        a prévia ficava escura sem nenhuma explicação.
+        """
+        if str(self.indice).lower() != "auto":
+            return self._tentar(int(self.indice))
+
+        if Camera._indice_descoberto is not None:
+            cap = self._tentar(Camera._indice_descoberto)
+            if cap is not None:
+                self.indice_em_uso = Camera._indice_descoberto
+                return cap
+            Camera._indice_descoberto = None  # sumiu; sonda de novo
+
+        # Guarda só o número do índice de reserva, nunca um handle aberto:
+        # segurar um dispositivo enquanto sonda os outros atrapalha o DSHOW.
+        reserva = None
+        for indice in range(config.CAMERA_MAX_INDICE):
+            cap = self._tentar(indice)
+            if cap is None:
+                continue
+            if self._entrega_imagem(cap):
+                self.indice_em_uso = indice
+                Camera._indice_descoberto = indice
                 return cap
             cap.release()
+            if reserva is None:
+                reserva = indice
+
+        if reserva is not None:
+            print(f"Aviso: nenhuma câmera entregou imagem; usando a {reserva}, "
+                  f"que abre mas devolve quadros vazios (provavelmente uma "
+                  f"câmera virtual sem fonte).")
+            self.indice_em_uso = reserva
+            return self._tentar(reserva)
         return None
+
+    def _tentar(self, indice):
+        """Abre um índice e devolve a captura, ou None."""
+        for backend in (cv2.CAP_DSHOW, cv2.CAP_ANY):
+            cap = cv2.VideoCapture(indice, backend)
+            if not cap.isOpened():
+                cap.release()
+                continue
+
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.largura)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.altura)
+            # Buffer curto: evita exibir imagem velha da fila do driver.
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            return cap
+        return None
+
+    @staticmethod
+    def _entrega_imagem(cap, tentativas=4):
+        """True se algum dos primeiros quadros tiver conteúdo de verdade.
+
+        Alguns dispositivos levam um ou dois quadros para acordar, por isso
+        não desiste no primeiro preto.
+        """
+        for _ in range(tentativas):
+            ok, frame = cap.read()
+            if ok and frame is not None and frame.std() >= config.CAMERA_DESVIO_MINIMO:
+                return True
+            time.sleep(0.03)
+        return False
 
     def _laco(self):
         """Único dono do VideoCapture: abre, lê e libera.
@@ -500,6 +561,7 @@ class ReconhecedorAssincrono:
         self._rastreio = []
         self._candidatos = []       # caixas vistas, aguardando estabilidade
         self._referencia_movimento = None
+        self._ultima_analise = 0.0
 
         self._lock = threading.Lock()
         self._rodando = False
@@ -526,6 +588,7 @@ class ReconhecedorAssincrono:
             self._candidatos = []
             self._contagem.clear()
             self._referencia_movimento = None
+            self._ultima_analise = 0.0
 
     def coletar_registros(self):
         """Devolve e limpa a fila de confirmados."""
@@ -672,18 +735,47 @@ class ReconhecedorAssincrono:
             return False
 
     def _houve_movimento(self, pequeno):
-        """Compara com o último frame analisado. Custa ~0,04 ms."""
+        """A cena mudou o bastante para valer uma análise? Custa ~0,04 ms.
+
+        Dois cuidados que a versão ingênua não tinha:
+
+        A referência só é trocada quando decidimos analisar. Comparar sempre
+        com o quadro imediatamente anterior esconde movimento lento e
+        contínuo — cada passo fica sob o limiar, embora o acumulado seja
+        grande. Pior: este laço gira bem mais rápido do que a câmera entrega
+        quadros, então boa parte das comparações era de um quadro com ele
+        mesmo, e o portão ficava fechado para sempre.
+
+        E há um batimento: passado `INTERVALO_BATIMENTO` sem análise, roda de
+        qualquer forma. Assim o atraso máximo para notar alguém é limitado,
+        mesmo que o movimento nunca supere o limiar.
+        """
         if not config.FILTRO_MOVIMENTO:
             return True
 
         miniatura = cv2.cvtColor(
             cv2.resize(pequeno, (160, 120)), cv2.COLOR_BGR2GRAY
         )
-        anterior, self._referencia_movimento = self._referencia_movimento, miniatura
+        agora = time.monotonic()
 
-        if anterior is None:
+        if self._referencia_movimento is None:
+            self._marcar_analise(miniatura, agora)
             return True
-        return cv2.absdiff(anterior, miniatura).mean() >= config.LIMIAR_MOVIMENTO
+
+        if agora - self._ultima_analise >= config.INTERVALO_BATIMENTO:
+            self._marcar_analise(miniatura, agora)
+            return True
+
+        diferenca = cv2.absdiff(self._referencia_movimento, miniatura).mean()
+        if diferenca < config.LIMIAR_MOVIMENTO:
+            return False  # Referência intacta: a diferença segue acumulando.
+
+        self._marcar_analise(miniatura, agora)
+        return True
+
+    def _marcar_analise(self, miniatura, agora):
+        self._referencia_movimento = miniatura
+        self._ultima_analise = agora
 
     def _estavel(self, caixa):
         """True quando a caixa já apareceu em passadas anteriores."""
