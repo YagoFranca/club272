@@ -6,12 +6,12 @@ alcançado: a exportação partia sempre do evento aberto, e as presenças dos
 eventos passados ficavam no banco sem nenhuma tela que chegasse até elas.
 """
 
-import csv
 from datetime import datetime
 from tkinter import filedialog
 
 import customtkinter as ctk
 
+from club272.core import exportacao
 from club272.core.database import DatabaseManager
 from club272.ui.components import Badge, Botao, Card, EstadoVazio, Metrica, Tabela
 from club272.ui.shell import Tela
@@ -201,7 +201,7 @@ class TelaEventos(Tela):
         acoes = ctk.CTkFrame(self.area_detalhe, fg_color="transparent")
         acoes.pack(fill="x", pady=(Espaco.LG, 0))
 
-        Botao(acoes, "Exportar lista (CSV)", "primario",
+        Botao(acoes, "Exportar lista de presença", "primario",
               command=self._exportar).pack(fill="x", pady=(0, Espaco.SM))
 
         self.botao_remover = Botao(
@@ -218,36 +218,57 @@ class TelaEventos(Tela):
                             Cor.ALERTA)
             return
 
-        # O nome do evento vira parte do arquivo, limpo do que o Windows
-        # rejeita em nome de arquivo.
+        # O nome do evento entra no arquivo, limpo do que o Windows rejeita.
         seguro = "".join(c if c.isalnum() or c in " -_" else "_"
                          for c in evento["nome"]).strip() or "evento"
-        sugerido = f"presencas_{seguro}_{datetime.now():%Y%m%d}.csv"
+        sugerido = f"presencas_{seguro}_{datetime.now():%Y%m%d}.xlsx"
 
         caminho = filedialog.asksaveasfilename(
-            title="Salvar lista de presença", defaultextension=".csv",
-            initialfile=sugerido, filetypes=[("CSV", "*.csv")],
+            title="Salvar lista de presença", defaultextension=".xlsx",
+            initialfile=sugerido,
+            filetypes=[("Planilha do Excel", "*.xlsx"), ("CSV", "*.csv")],
         )
         if not caminho:
             return
 
         membros = {u["id"]: u for u in self.db.listar_usuarios()}
+        linhas = []
+        for posicao, p in enumerate(presencas, start=1):
+            membro = membros.get(p["usuario_id"], {})
+            linhas.append([
+                posicao,
+                p["nome_usuario"],
+                membro.get("group_name") or "—",
+                p["usuario_id"],
+                self.db.formatar_hora_presenca(p["hora_presenca"]),
+            ])
 
-        # utf-8-sig: sem o BOM, o Excel em português abre os acentos errados.
-        with open(caminho, "w", encoding="utf-8-sig", newline="") as arquivo:
-            escritor = csv.writer(arquivo)
-            escritor.writerow(["evento", evento["nome"]])
-            escritor.writerow(["inicio", _data_curta(evento["data_inicio"])])
-            escritor.writerow(["termino", _data_curta(evento["data_fim"])])
-            escritor.writerow([])
-            escritor.writerow(["id", "nome", "grupo", "hora"])
-            for p in presencas:
-                membro = membros.get(p["usuario_id"], {})
-                escritor.writerow([
-                    p["usuario_id"], p["nome_usuario"],
-                    membro.get("group_name") or "",
-                    self.db.formatar_hora_presenca(p["hora_presenca"]),
-                ])
+        aberto = evento["status"] == "aberto"
+        total_membros = len(membros)
+
+        try:
+            exportacao.exportar(
+                caminho,
+                titulo=f"Lista de presença — {evento['nome']}",
+                colunas=["#", "Nome", "Grupo", "ID", "Hora"],
+                linhas=linhas,
+                metadados=[
+                    ("Início", _data_curta(evento["data_inicio"])),
+                    ("Término", "em andamento" if aberto
+                     else _data_curta(evento["data_fim"])),
+                    ("Gerado em", _data_curta(datetime.now().isoformat())),
+                ],
+                resumo=[
+                    ("Total de presentes", len(presencas)),
+                    ("Membros cadastrados", total_membros),
+                    ("Taxa de presença",
+                     f"{100 * len(presencas) / total_membros:.0f}%"
+                     if total_membros else "—"),
+                ],
+            )
+        except Exception as e:
+            self.app.status(f"Falha ao exportar: {e}", Cor.PERIGO)
+            return
 
         self.app.status(f"{len(presencas)} presença(s) exportada(s)", Cor.SUCESSO)
 

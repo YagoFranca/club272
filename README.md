@@ -49,11 +49,22 @@ lógica é testável sem abrir janela, e as telas só montam widgets.
 | Tela | O que faz |
 | --- | --- |
 | **Presença** | Abre evento, reconhece rostos ao vivo e registra presença |
-| **Eventos** | Histórico, lista de presença de cada evento e exportação CSV |
+| **Eventos** | Histórico, lista de presença de cada evento e relatórios |
 | **Membros** | Lista com busca, edição e remoção de cadastros |
 | **Cadastro** | Registro individual capturando o rosto pela webcam |
 | **Cadastro em lote** | Importa CSV/Excel, vincula fotos e processa |
 | **Sincronização** | Estado da nuvem, envio/recebimento, exportação de membros |
+
+### Relatórios
+
+Eventos e membros exportam em **Excel (.xlsx)** por padrão, com título,
+cabeçalho fixo, filtro automático, faixas alternadas, larguras ajustadas e um
+rodapé de totais. CSV continua disponível na mesma caixa de diálogo.
+
+O CSV usa o **separador de lista da região do Windows** (`;` em pt-BR), lido
+do registro — a mesma fonte que o Excel consulta. Com a vírgula padrão do
+Python, o Excel brasileiro abria o arquivo com tudo amontoado numa coluna só.
+A gravação é em `utf-8-sig`: sem o BOM, os acentos saem errados.
 
 Só um evento fica aberto por vez: abrir um novo encerra o anterior. Sem essa
 garantia o segundo evento ficaria invisível — a busca devolve apenas o

@@ -8,7 +8,6 @@ a janela, e é justamente o que acontece quando o projeto Supabase está fora do
 ar.
 """
 
-import csv
 import threading
 from datetime import datetime
 from tkinter import filedialog
@@ -16,6 +15,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 from club272 import config
+from club272.core import exportacao
 from club272.core.database import DatabaseManager
 from club272.core.supabase import SupabaseManager
 from club272.ui.components import Abas, Badge, Botao, Card, EstadoVazio, Metrica, Tabela
@@ -128,7 +128,7 @@ class TelaSincronizacao(Tela):
         linha = ctk.CTkFrame(card.corpo, fg_color="transparent")
         linha.pack(fill="x")
 
-        Botao(linha, "Membros (CSV)", "fantasma", width=150,
+        Botao(linha, "Exportar membros", "fantasma", width=170,
               command=self._exportar_membros).pack(side="left")
 
         ctk.CTkLabel(
@@ -304,28 +304,53 @@ class TelaSincronizacao(Tela):
     # ===== EXPORTAÇÃO =====
     def _exportar_membros(self):
         usuarios = self.db.listar_usuarios()
-        colunas = ["id", "name", "group_name", "phone", "total_attendance",
-                   "last_attendance_time", "sync_status"]
-        self._exportar("membros", colunas,
-                       [[u.get(c, "") for c in colunas] for u in usuarios])
-
-    def _exportar(self, prefixo, colunas, linhas):
-        if not linhas:
-            self.app.status("Nada para exportar", Cor.ALERTA)
+        if not usuarios:
+            self.app.status("Nenhum membro para exportar", Cor.ALERTA)
             return
 
-        sugerido = f"{prefixo}_{datetime.now():%Y%m%d_%H%M}.csv"
+        sugerido = f"membros_{datetime.now():%Y%m%d}.xlsx"
         caminho = filedialog.asksaveasfilename(
-            title="Salvar CSV", defaultextension=".csv",
-            initialfile=sugerido, filetypes=[("CSV", "*.csv")],
+            title="Salvar lista de membros", defaultextension=".xlsx",
+            initialfile=sugerido,
+            filetypes=[("Planilha do Excel", "*.xlsx"), ("CSV", "*.csv")],
         )
         if not caminho:
             return
 
-        # utf-8-sig: sem o BOM, o Excel em português abre os acentos errados.
-        with open(caminho, "w", encoding="utf-8-sig", newline="") as arquivo:
-            escritor = csv.writer(arquivo)
-            escritor.writerow(colunas)
-            escritor.writerows(linhas)
+        linhas = []
+        com_rosto = 0
+        for posicao, u in enumerate(sorted(usuarios, key=lambda x: x["name"] or ""),
+                                    start=1):
+            tem_rosto = u["encoding"] is not None
+            com_rosto += tem_rosto
+            linhas.append([
+                posicao,
+                u["name"],
+                u["group_name"] or "—",
+                u["phone"] or "—",
+                u["id"],
+                u["total_attendance"] or 0,
+                self.db.formatar_hora_presenca(u["last_attendance_time"]) or "nunca",
+                "sim" if tem_rosto else "não",
+            ])
 
-        self.app.status(f"{len(linhas)} linha(s) exportada(s)", Cor.SUCESSO)
+        try:
+            exportacao.exportar(
+                caminho,
+                titulo="Membros cadastrados",
+                colunas=["#", "Nome", "Grupo", "Telefone", "ID",
+                         "Presenças", "Última presença", "Rosto"],
+                linhas=linhas,
+                metadados=[("Gerado em",
+                            datetime.now().strftime("%d/%m/%Y %H:%M"))],
+                resumo=[
+                    ("Total de membros", len(usuarios)),
+                    ("Com rosto cadastrado", com_rosto),
+                    ("Sem rosto", len(usuarios) - com_rosto),
+                ],
+            )
+        except Exception as e:
+            self.app.status(f"Falha ao exportar: {e}", Cor.PERIGO)
+            return
+
+        self.app.status(f"{len(usuarios)} membro(s) exportado(s)", Cor.SUCESSO)

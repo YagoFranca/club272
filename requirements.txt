@@ -15,7 +15,7 @@ numpy>=1.23
 
 # Dados e relatórios
 pandas>=1.5
-openpyxl>=3.1          # leitura de .xlsx no cadastro em lote
+openpyxl>=3.1          # planilhas: importação em lote e relatórios
 
 # Integração
 requests>=2.31
