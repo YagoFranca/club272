@@ -131,8 +131,10 @@ class TelaSincronizacao(Tela):
         Botao(linha, "Membros (CSV)", "fantasma", width=150,
               command=self._exportar_membros).pack(side="left")
 
-        Botao(linha, "Presenças (CSV)", "fantasma", width=160,
-              command=self._exportar_presencas).pack(side="left", padx=Espaco.SM)
+        ctk.CTkLabel(
+            linha, text="Listas de presença ficam na tela de Eventos",
+            font=Fonte.PEQUENO, text_color=Cor.TEXTO_APAGADO,
+        ).pack(side="left", padx=Espaco.LG)
 
         card_grupos = Card(painel, titulo="Membros por grupo")
         card_grupos.pack(fill="both", expand=True)
@@ -306,20 +308,6 @@ class TelaSincronizacao(Tela):
                    "last_attendance_time", "sync_status"]
         self._exportar("membros", colunas,
                        [[u.get(c, "") for c in colunas] for u in usuarios])
-
-    def _exportar_presencas(self):
-        evento = self.db.buscar_evento_aberto()
-        if not evento:
-            self.app.status("Nenhum evento aberto para exportar", Cor.ALERTA)
-            return
-
-        presencas = self.db.listar_presencas_evento(evento["id"])
-        linhas = [
-            [p["usuario_id"], p["nome_usuario"],
-             self.db.formatar_hora_presenca(p["hora_presenca"])]
-            for p in presencas
-        ]
-        self._exportar("presencas", ["id", "nome", "hora"], linhas)
 
     def _exportar(self, prefixo, colunas, linhas):
         if not linhas:

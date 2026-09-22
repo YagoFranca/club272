@@ -309,10 +309,28 @@ class DatabaseManager:
 
     # ===== EVENTOS =====
     def criar_evento(self, nome_evento):
-        """Cria um evento aberto e devolve o ID."""
+        """Cria um evento aberto e devolve o ID.
+
+        Garante a invariante de no máximo um evento aberto: se houver outro,
+        ele é encerrado antes. Sem isso o segundo evento ficaria invisível —
+        `buscar_evento_aberto` devolve apenas o primeiro, e as presenças
+        seguintes iriam para um evento que ninguém consegue ver.
+        """
         agora = datetime.now().isoformat()
         with self._connect() as conn:
             cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE eventos
+                SET data_fim = ?, status = 'fechado', sync_status = 'pending'
+                WHERE status = 'aberto'
+                """,
+                (agora,),
+            )
+            if cursor.rowcount:
+                print(f"{cursor.rowcount} evento(s) em aberto encerrado(s) "
+                      f"antes de abrir '{nome_evento}'.")
+
             cursor.execute(
                 """
                 INSERT INTO eventos (nome, data_inicio, status, sync_status)
@@ -323,6 +341,43 @@ class DatabaseManager:
             evento_id = cursor.lastrowid
             conn.commit()
         return evento_id
+
+    def listar_eventos(self):
+        """Todos os eventos, do mais recente para o mais antigo, com a
+        contagem de presenças de cada um."""
+        with self._connect(row_factory=True) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT e.*, COUNT(p.id) AS total_presencas
+                FROM eventos e
+                LEFT JOIN presencas_evento p ON p.evento_id = e.id
+                GROUP BY e.id
+                ORDER BY e.data_inicio DESC
+                """
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def buscar_evento(self, evento_id):
+        """Um evento pelo ID, aberto ou fechado."""
+        with self._connect(row_factory=True) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM eventos WHERE id = ?", (evento_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def remover_evento(self, evento_id):
+        """Apaga o evento e as presenças dele. Devolve True se existia."""
+        if self.buscar_evento(evento_id) is None:
+            return False
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM presencas_evento WHERE evento_id = ?", (evento_id,)
+            )
+            cursor.execute("DELETE FROM eventos WHERE id = ?", (evento_id,))
+            conn.commit()
+        return True
 
     def fechar_evento(self, evento_id):
         """Fecha um evento, gravando a data de término."""

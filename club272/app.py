@@ -14,6 +14,7 @@ import customtkinter as ctk
 from club272 import config
 from club272.ui.screens.attendance import TelaPresenca
 from club272.ui.screens.batch import TelaLote
+from club272.ui.screens.events import TelaEventos
 from club272.ui.screens.members import TelaMembros
 from club272.ui.screens.register import TelaCadastro
 from club272.ui.screens.sync import TelaSincronizacao
@@ -22,6 +23,7 @@ from club272.ui.shell import Shell
 # Ordem da barra lateral: (chave, ícone, classe, grupo)
 TELAS = (
     ("presenca", "◉", TelaPresenca, None),
+    ("eventos", "▤", TelaEventos, None),
     ("membros", "◫", TelaMembros, None),
     ("cadastro", "✛", TelaCadastro, "cadastro"),
     ("lote", "⇪", TelaLote, None),

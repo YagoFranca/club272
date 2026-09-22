@@ -49,10 +49,15 @@ lógica é testável sem abrir janela, e as telas só montam widgets.
 | Tela | O que faz |
 | --- | --- |
 | **Presença** | Abre evento, reconhece rostos ao vivo e registra presença |
+| **Eventos** | Histórico, lista de presença de cada evento e exportação CSV |
 | **Membros** | Lista com busca, edição e remoção de cadastros |
 | **Cadastro** | Registro individual capturando o rosto pela webcam |
 | **Cadastro em lote** | Importa CSV/Excel, vincula fotos e processa |
-| **Sincronização** | Estado da nuvem, envio/recebimento, exportação CSV |
+| **Sincronização** | Estado da nuvem, envio/recebimento, exportação de membros |
+
+Só um evento fica aberto por vez: abrir um novo encerra o anterior. Sem essa
+garantia o segundo evento ficaria invisível — a busca devolve apenas o
+primeiro, e as presenças seguintes iriam para um evento inalcançável.
 
 ## Desempenho
 
