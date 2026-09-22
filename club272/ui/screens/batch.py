@@ -236,7 +236,7 @@ class TelaLote(Tela):
         for widget in self.area_tabela.winfo_children():
             widget.destroy()
         EstadoVazio(
-            self.area_tabela, "📄", "Nenhuma planilha carregada",
+            self.area_tabela, "documento", "Nenhuma planilha carregada",
             "Importe um CSV ou Excel com as colunas id, nome, grupo, "
             "telefone e foto.",
         ).pack(fill="both", expand=True)

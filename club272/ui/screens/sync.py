@@ -117,7 +117,7 @@ class TelaSincronizacao(Tela):
         self.area_nuvem = ctk.CTkFrame(card.corpo, fg_color="transparent")
         self.area_nuvem.pack(fill="both", expand=True)
 
-        EstadoVazio(self.area_nuvem, "☁️", "Nada carregado",
+        EstadoVazio(self.area_nuvem, "nuvem", "Nada carregado",
                     "Use “Testar conexão” para consultar a nuvem.").pack(
             fill="both", expand=True)
 
@@ -272,7 +272,7 @@ class TelaSincronizacao(Tela):
             widget.destroy()
 
         if not usuarios:
-            EstadoVazio(self.area_nuvem, "☁️", "Nuvem vazia",
+            EstadoVazio(self.area_nuvem, "nuvem", "Nuvem vazia",
                         "Nenhum cadastro no Supabase ainda.").pack(
                 fill="both", expand=True)
             return

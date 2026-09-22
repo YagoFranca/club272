@@ -180,7 +180,7 @@ class TelaEventos(Tela):
 
         if not self.eventos:
             EstadoVazio(
-                self.area_lista, "📅", "Nenhum evento ainda",
+                self.area_lista, "calendario", "Nenhum evento ainda",
                 "Abra um evento na tela de Presença para começar a registrar.",
             ).pack(fill="both", expand=True)
             self.tabela = None
@@ -213,7 +213,7 @@ class TelaEventos(Tela):
     def _mostrar_sem_selecao(self):
         self._limpar_detalhe()
         EstadoVazio(
-            self.area_detalhe, "📋", "Nenhum evento selecionado",
+            self.area_detalhe, "lista", "Nenhum evento selecionado",
             "Clique num evento da lista para ver quem esteve presente.",
         ).pack(fill="both", expand=True)
 
@@ -264,7 +264,7 @@ class TelaEventos(Tela):
                     self.db.formatar_hora_presenca(p["hora_presenca"]),
                 ])
         else:
-            EstadoVazio(lista, "🕳️", "Ninguém registrado",
+            EstadoVazio(lista, "caixa-vazia", "Ninguém registrado",
                         "Este evento não teve presenças.").pack(
                 fill="both", expand=True)
 

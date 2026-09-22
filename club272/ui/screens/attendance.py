@@ -149,7 +149,7 @@ class TelaPresenca(Tela):
         self.lista.pack(fill="both", expand=True)
 
         self.vazio = EstadoVazio(
-            self.lista, "👥", "Ninguém registrado ainda",
+            self.lista, "pessoas", "Ninguém registrado ainda",
             "As presenças aparecem aqui assim que os rostos forem reconhecidos.",
         )
         self.vazio.pack(fill="both", expand=True)
@@ -279,7 +279,7 @@ class TelaPresenca(Tela):
 
         if not self._presencas:
             self.vazio = EstadoVazio(
-                self.lista, "👥", "Ninguém registrado ainda",
+                self.lista, "pessoas", "Ninguém registrado ainda",
                 "As presenças aparecem aqui assim que os rostos forem reconhecidos.",
             )
             self.vazio.pack(fill="both", expand=True)

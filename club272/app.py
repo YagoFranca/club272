@@ -20,14 +20,14 @@ from club272.ui.screens.register import TelaCadastro
 from club272.ui.screens.sync import TelaSincronizacao
 from club272.ui.shell import Shell
 
-# Ordem da barra lateral: (chave, ícone, classe, grupo)
+# Ordem da barra lateral: (chave, nome do ícone, classe, grupo)
 TELAS = (
-    ("presenca", "◉", TelaPresenca, None),
-    ("eventos", "▤", TelaEventos, None),
-    ("membros", "◫", TelaMembros, None),
-    ("cadastro", "✛", TelaCadastro, "cadastro"),
-    ("lote", "⇪", TelaLote, None),
-    ("sync", "⟳", TelaSincronizacao, "sistema"),
+    ("presenca", "camera", TelaPresenca, None),
+    ("eventos", "calendario", TelaEventos, None),
+    ("membros", "pessoas", TelaMembros, None),
+    ("cadastro", "adicionar-pessoa", TelaCadastro, "cadastro"),
+    ("lote", "upload", TelaLote, None),
+    ("sync", "sincronizar", TelaSincronizacao, "sistema"),
 )
 
 

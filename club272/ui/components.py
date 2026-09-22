@@ -10,6 +10,64 @@ import customtkinter as ctk
 from club272.ui.theme import Cor, Espaco, Fonte, Raio
 
 
+# Ícones por nome, para as telas não lidarem com pontos de código.
+# Os valores são da Segoe Fluent Icons (Windows 11); a Segoe MDL2 Assets
+# (Windows 10) compartilha os mesmos pontos nesta faixa.
+ICONES = {
+    "camera": "",
+    "calendario": "",
+    "pessoas": "",
+    "contato": "",
+    "adicionar-pessoa": "",
+    "upload": "",
+    "sincronizar": "",
+    "busca": "",
+    "lista": "",
+    "caixa-vazia": "",
+    "documento": "",
+    "nuvem": "",
+    "aviso": "",
+    "ok": "",
+}
+
+# Resolvida uma vez: consultar as famílias instaladas exige um root do Tk.
+_familia_icones = None
+
+
+def familia_de_icones():
+    """Primeira fonte de ícone instalada, ou None se nenhuma existir."""
+    global _familia_icones
+    if _familia_icones is None:
+        import tkinter.font as tkfont
+
+        try:
+            instaladas = set(tkfont.families())
+        except Exception:
+            instaladas = set()
+        _familia_icones = next(
+            (f for f in Fonte.ICONES if f in instaladas), ""
+        )
+    return _familia_icones or None
+
+
+class Icone(ctk.CTkLabel):
+    """Ícone monocromático da fonte de ícones do sistema.
+
+    Sem a fonte (Windows antigo, outro sistema), cai num marcador neutro em
+    vez de desenhar um retângulo vazio.
+    """
+
+    def __init__(self, master, nome, tamanho=16, cor=None, **kwargs):
+        familia = familia_de_icones()
+        glifo = ICONES.get(nome, ICONES["ok"])
+
+        kwargs.setdefault("text", glifo if familia else "•")
+        kwargs.setdefault("font", (familia or Fonte.FAMILIA, tamanho))
+        kwargs.setdefault("text_color", cor or Cor.TEXTO_SECUNDARIO)
+        kwargs.setdefault("fg_color", "transparent")
+        super().__init__(master, **kwargs)
+
+
 class Card(ctk.CTkFrame):
     """Bloco de conteúdo com superfície elevada e borda sutil.
 
@@ -169,8 +227,8 @@ class EstadoVazio(ctk.CTkFrame):
         kwargs.setdefault("fg_color", "transparent")
         super().__init__(master, **kwargs)
 
-        ctk.CTkLabel(self, text=icone, font=(Fonte.FAMILIA, 40)).pack(
-            pady=(Espaco.XXL, Espaco.SM)
+        Icone(self, icone, tamanho=40, cor=Cor.TEXTO_APAGADO).pack(
+            pady=(Espaco.XXL, Espaco.MD)
         )
         ctk.CTkLabel(
             self, text=titulo, font=Fonte.CORPO_FORTE, text_color=Cor.TEXTO_SECUNDARIO,

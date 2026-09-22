@@ -31,7 +31,7 @@ Uma janela, com navegação lateral entre as telas.
 │   │   └── supabase.py         # cliente da API REST
 │   ├── ui/
 │   │   ├── theme.py            # design system: cor, tipografia, espaço
-│   │   ├── components.py       # Card, Botão, Badge, Tabela, Campo…
+│   │   ├── components.py       # Card, Botão, Badge, Tabela, Campo, Ícone…
 │   │   ├── shell.py            # janela, sidebar, topbar, barra de status
 │   │   ├── assets.py           # logo e ícone
 │   │   └── screens/            # uma tela por arquivo
@@ -43,6 +43,11 @@ Uma janela, com navegação lateral entre as telas.
 
 A separação é a regra do projeto: **`core/` não importa nada de `ui/`**. Toda a
 lógica é testável sem abrir janela, e as telas só montam widgets.
+
+Os ícones vêm da **Segoe Fluent Icons** (a fonte de ícones do Windows), pelo
+nome — `Icone(pai, "calendario")`. Emoji não servem: o Tk não desenha emoji
+colorido no Windows, e o glifo sai como um borrão monocromático. Sem a fonte
+instalada, o componente cai num marcador neutro em vez de um retângulo vazio.
 
 ## Telas
 

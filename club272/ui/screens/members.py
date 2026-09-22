@@ -120,7 +120,7 @@ class TelaMembros(Tela):
 
         if not visiveis:
             EstadoVazio(
-                self.area_lista, "🔍", "Nenhum membro encontrado",
+                self.area_lista, "busca", "Nenhum membro encontrado",
                 f"Nada corresponde a “{termo}”." if termo
                 else "Cadastre alguém pela tela de Cadastro.",
             ).pack(fill="both", expand=True)
@@ -154,7 +154,7 @@ class TelaMembros(Tela):
     def _mostrar_sem_selecao(self):
         self._limpar_detalhe()
         EstadoVazio(
-            self.area_detalhe, "👤", "Nenhum membro selecionado",
+            self.area_detalhe, "contato", "Nenhum membro selecionado",
             "Clique numa linha da lista para ver e editar os dados.",
         ).pack(fill="both", expand=True)
 

@@ -66,6 +66,12 @@ class Fonte:
     FAMILIA = "Segoe UI"
     MONO = "Consolas"
 
+    # Fontes de ícone do Windows, em ordem de preferência. Emoji não servem
+    # aqui: o Tk não desenha emoji colorido no Windows, e o glifo sai como um
+    # borrão monocromático — foi o que aconteceu com os ícones de estado
+    # vazio. Estas são fontes de ícone monocromáticas, feitas para interface.
+    ICONES = ("Segoe Fluent Icons", "Segoe MDL2 Assets")
+
     DISPLAY = (FAMILIA, 26, "bold")
     TITULO = (FAMILIA, 19, "bold")
     SUBTITULO = (FAMILIA, 15, "bold")

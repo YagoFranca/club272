@@ -11,43 +11,58 @@ import queue
 import customtkinter as ctk
 
 from club272.ui.assets import aplicar_icone_janela, logo_circular
-from club272.ui.components import Badge
+from club272.ui.components import Badge, Icone
 from club272.ui.theme import Cor, Espaco, Fonte, Raio
 
 
-class ItemNav(ctk.CTkButton):
-    """Item da barra lateral, com estado ativo/inativo."""
+class ItemNav(ctk.CTkFrame):
+    """Item da barra lateral, com estado ativo/inativo.
+
+    É um frame, e não um botão: o ícone vem de uma fonte de ícones e o rótulo
+    da fonte de texto, e um único `CTkButton` não mistura duas famílias no
+    mesmo rótulo.
+    """
 
     def __init__(self, master, icone, texto, comando, **kwargs):
-        self._icone = icone
-        self._texto = texto
-        super().__init__(
-            master,
-            text=f"   {icone}   {texto}",
-            command=comando,
-            anchor="w",
-            height=42,
-            corner_radius=Raio.MD,
-            font=Fonte.CORPO,
-            fg_color="transparent",
-            hover_color=Cor.SUPERFICIE_HOVER,
-            text_color=Cor.TEXTO_SECUNDARIO,
-            **kwargs,
+        kwargs.setdefault("fg_color", "transparent")
+        kwargs.setdefault("corner_radius", Raio.MD)
+        kwargs.setdefault("height", 42)
+        super().__init__(master, **kwargs)
+        self.pack_propagate(False)
+
+        self._comando = comando
+        self._ativo = False
+
+        self.icone = Icone(self, icone, tamanho=17, cor=Cor.TEXTO_SECUNDARIO)
+        self.icone.pack(side="left", padx=(Espaco.MD, Espaco.MD))
+
+        self.rotulo = ctk.CTkLabel(
+            self, text=texto, font=Fonte.CORPO,
+            text_color=Cor.TEXTO_SECUNDARIO, anchor="w",
         )
+        self.rotulo.pack(side="left", fill="both", expand=True)
+
+        for widget in (self, self.icone, self.rotulo):
+            widget.configure(cursor="hand2")
+            widget.bind("<Button-1>", lambda _: self._comando())
+            widget.bind("<Enter>", lambda _: self._pintar(hover=True))
+            widget.bind("<Leave>", lambda _: self._pintar(hover=False))
+
+    def _pintar(self, hover):
+        if self._ativo:
+            return
+        self.configure(fg_color=Cor.SUPERFICIE_HOVER if hover else "transparent")
 
     def definir_ativo(self, ativo):
+        self._ativo = ativo
         if ativo:
-            self.configure(
-                fg_color=Cor.ACENTO_FUNDO,
-                text_color=Cor.ACENTO,
-                font=Fonte.CORPO_FORTE,
-            )
+            self.configure(fg_color=Cor.ACENTO_FUNDO)
+            self.icone.configure(text_color=Cor.ACENTO)
+            self.rotulo.configure(text_color=Cor.ACENTO, font=Fonte.CORPO_FORTE)
         else:
-            self.configure(
-                fg_color="transparent",
-                text_color=Cor.TEXTO_SECUNDARIO,
-                font=Fonte.CORPO,
-            )
+            self.configure(fg_color="transparent")
+            self.icone.configure(text_color=Cor.TEXTO_SECUNDARIO)
+            self.rotulo.configure(text_color=Cor.TEXTO_SECUNDARIO, font=Fonte.CORPO)
 
 
 class Tela(ctk.CTkFrame):
