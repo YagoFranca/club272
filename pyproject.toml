@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "club272"
-version = "4.1.0"
+version = "4.1.1"
 description = "Sistema integrado de reconhecimento facial e controle de presença do 272 Club"
 requires-python = ">=3.10"
 dependencies = [

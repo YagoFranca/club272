@@ -4,7 +4,7 @@
 ; Exige que `dist\272Club` já exista (rode `python empacotar.py` antes).
 
 #define Nome "272 Club"
-#define Versao "4.1.0"
+#define Versao "4.1.1"
 #define Publicador "272 Club"
 #define Executavel "272Club.exe"
 
