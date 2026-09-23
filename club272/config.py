@@ -50,9 +50,6 @@ IMAGES_DIR = DATA_DIR / "images"
 PHOTOS_DIR = DATA_DIR / "photos"
 BACKUPS_DIR = DATA_DIR / "backups"
 
-# O modelo de planilha é gravado sob demanda, então mora no lado gravável.
-TEMPLATES_DIR = DADOS_DIR / "templates"
-TEMPLATES_RECURSO = RECURSOS_DIR / "templates"
 
 DB_PATH = _DB_EXTERNO or str(DATA_DIR / "sistema_integrado.db")
 
@@ -62,7 +59,7 @@ ICON_PATH = str(ASSETS_DIR / "272club.ico")
 
 def ensure_directories():
     """Cria as pastas graváveis caso ainda não existam."""
-    for folder in (DATA_DIR, IMAGES_DIR, PHOTOS_DIR, BACKUPS_DIR, TEMPLATES_DIR):
+    for folder in (DATA_DIR, IMAGES_DIR, PHOTOS_DIR, BACKUPS_DIR):
         folder.mkdir(parents=True, exist_ok=True)
 
 

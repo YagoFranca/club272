@@ -27,7 +27,7 @@ Uma janela, com navegação lateral entre as telas.
 │   │   ├── database.py         # SQLite + sincronização
 │   │   ├── encoding.py         # serialização de encodings faciais
 │   │   ├── recognition.py      # câmera, detecção e identificação
-│   │   ├── importacao.py       # CSV/Excel para cadastro em lote
+│   │   ├── exportacao.py       # relatórios em Excel e CSV
 │   │   └── supabase.py         # cliente da API REST
 │   ├── ui/
 │   │   ├── theme.py            # design system: cor, tipografia, espaço
@@ -36,9 +36,8 @@ Uma janela, com navegação lateral entre as telas.
 │   │   ├── assets.py           # logo e ícone
 │   │   └── screens/            # uma tela por arquivo
 │   └── assets/272club.png
-├── data/                       # runtime, fora do controle de versão
-│   ├── sistema_integrado.db · images/ · photos/ · backups/
-└── templates/template_cadastro_lote.csv
+└── data/                       # runtime, fora do controle de versão
+    └── sistema_integrado.db · images/ · photos/ · backups/
 ```
 
 A separação é a regra do projeto: **`core/` não importa nada de `ui/`**. Toda a
@@ -57,7 +56,6 @@ instalada, o componente cai num marcador neutro em vez de um retângulo vazio.
 | **Eventos** | Abre e encerra eventos, histórico, listas de presença e relatórios |
 | **Membros** | Lista com busca, edição e remoção de cadastros |
 | **Cadastro** | Registro individual capturando o rosto pela webcam |
-| **Cadastro em lote** | Importa CSV/Excel, vincula fotos e processa |
 | **Sincronização** | Estado da nuvem, envio/recebimento, exportação de membros |
 
 ### Relatórios
@@ -178,7 +176,7 @@ Por padrão não sobrescreve quem já existe. Opções: `--substituir`,
 
 ### Backups
 
-`data/backups/` guarda cópias automáticas (antes de cada lote, por exemplo).
+`data/backups/` guarda cópias automáticas (antes de uma importação, por exemplo).
 Para inspecionar e restaurar:
 
 ```bash

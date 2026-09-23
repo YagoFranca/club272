@@ -13,7 +13,6 @@ import customtkinter as ctk
 
 from club272 import config
 from club272.ui.screens.attendance import TelaPresenca
-from club272.ui.screens.batch import TelaLote
 from club272.ui.screens.events import TelaEventos
 from club272.ui.screens.members import TelaMembros
 from club272.ui.screens.register import TelaCadastro
@@ -26,7 +25,6 @@ TELAS = (
     ("eventos", "calendario", TelaEventos, None),
     ("membros", "pessoas", TelaMembros, None),
     ("cadastro", "adicionar-pessoa", TelaCadastro, "cadastro"),
-    ("lote", "upload", TelaLote, None),
     ("sync", "sincronizar", TelaSincronizacao, "sistema"),
 )
 

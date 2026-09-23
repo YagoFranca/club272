@@ -13,9 +13,8 @@ face-recognition-models>=0.3
 dlib>=19.24
 numpy>=1.23
 
-# Dados e relatórios
-pandas>=1.5
-openpyxl>=3.1          # planilhas: importação em lote e relatórios
+# Relatórios
+openpyxl>=3.1          # planilhas .xlsx
 
 # Integração
 requests>=2.31

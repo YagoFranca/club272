@@ -20,7 +20,6 @@ NOME = "272Club"
 # quebra na hora de reconhecer um rosto ou desenhar a janela.
 dados = [
     ("club272/assets", "club272/assets"),
-    ("templates", "templates"),
     (".env.example", "."),
 ]
 dados += collect_data_files("face_recognition_models")

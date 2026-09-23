@@ -19,7 +19,6 @@ def _verificar_dependencias(anotar):
         ("cv2", "OpenCV"),
         ("numpy", "NumPy"),
         ("PIL", "Pillow"),
-        ("pandas", "pandas"),
         ("openpyxl", "openpyxl"),
         ("requests", "requests"),
         ("customtkinter", "CustomTkinter"),
