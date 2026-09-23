@@ -39,7 +39,13 @@ else:
 BASE_DIR = DADOS_DIR
 
 ASSETS_DIR = RECURSOS_DIR / "club272" / "assets"
-DATA_DIR = DADOS_DIR / "data"
+
+# `CLUB272_DB` aponta para outro banco — usado pelos testes e para
+# experimentar sem tocar na base real. As pastas de fotos e backups seguem o
+# banco: caso contrário o redirecionamento seria pela metade, e um teste
+# acabaria gravando fotos e backups na pasta de produção. Aconteceu.
+_DB_EXTERNO = os.environ.get("CLUB272_DB")
+DATA_DIR = Path(_DB_EXTERNO).resolve().parent if _DB_EXTERNO else DADOS_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
 PHOTOS_DIR = DATA_DIR / "photos"
 BACKUPS_DIR = DATA_DIR / "backups"
@@ -48,9 +54,7 @@ BACKUPS_DIR = DATA_DIR / "backups"
 TEMPLATES_DIR = DADOS_DIR / "templates"
 TEMPLATES_RECURSO = RECURSOS_DIR / "templates"
 
-# `CLUB272_DB` aponta para outro arquivo — usado pelos testes de ponta a
-# ponta, e útil para experimentar sem tocar no banco de produção.
-DB_PATH = os.environ.get("CLUB272_DB") or str(DATA_DIR / "sistema_integrado.db")
+DB_PATH = _DB_EXTERNO or str(DATA_DIR / "sistema_integrado.db")
 
 LOGO_PATH = str(ASSETS_DIR / "272club.png")
 ICON_PATH = str(ASSETS_DIR / "272club.ico")

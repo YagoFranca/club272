@@ -127,7 +127,7 @@ DETECTOR=hog             # detector mais preciso, 2,6x mais caro
 FILTRO_MOVIMENTO=0       # desliga o portão de movimento
 INTERVALO_BATIMENTO=1.5  # segundos entre análises forçadas
 FACE_TOLERANCE=0.45      # menor = mais rigoroso
-CLUB272_DB=caminho.db    # usa outro banco (testes, experimentos)
+CLUB272_DB=caminho.db    # usa outro banco; fotos e backups seguem junto
 ```
 
 ### Escolha da câmera
@@ -160,6 +160,21 @@ IDs automáticos seguem `TSU_XXXXX`, a partir de `TSU_10000`.
 O arquivo atual traz também `historico_detalhado`, `config_sistema` e as
 colunas `email`/`is_deleted`, resquícios de uma versão antiga que nenhum código
 usa. Foram preservados, mas não fazem parte do schema criado do zero.
+
+### Importar a base do sistema antigo
+
+O sistema anterior guardava tudo numa tabela `registrations`, com as mesmas
+colunas que hoje vivem em `usuarios`. Os encodings faciais são compatíveis —
+mesmo dlib, mesmos 128 valores — então quem já estava cadastrado continua
+sendo reconhecido sem tirar foto de novo.
+
+```bash
+python importar_base_antiga.py local_database.db --fotos Images/
+```
+
+Por padrão não sobrescreve quem já existe. Opções: `--substituir`,
+`--pular-sem-rosto` e `--normalizar-grupos`, que unifica grafias como
+"G 19"/"G19" e "Oficial 0"/"OF 0" na mais usada.
 
 ### Backups
 
