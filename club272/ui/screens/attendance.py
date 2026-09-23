@@ -95,11 +95,15 @@ class TelaPresenca(Tela):
 
         # Label puro do Tk: o caminho cv2 -> PIL -> ImageTk continua idêntico
         # ao do sistema atual, sem custo extra por frame.
-        self.video = tk.Label(
-            moldura, bg=Cor.FUNDO, text="Câmera desligada",
-            fg=Cor.TEXTO_APAGADO, font=Fonte.CORPO,
+        # Enquanto a câmera está desligada, mostra o mesmo tipo de aviso das
+        # outras áreas vazias; no lugar dele entra o vídeo quando liga.
+        self.aviso_camera = EstadoVazio(
+            moldura, "camera", "Câmera desligada",
+            "Ligue a câmera para começar o reconhecimento.",
         )
-        self.video.pack(fill="both", expand=True, padx=Espaco.SM, pady=Espaco.SM)
+        self.aviso_camera.pack(fill="both", expand=True)
+
+        self.video = tk.Label(moldura, bg=Cor.FUNDO)
 
         controles = ctk.CTkFrame(card.corpo, fg_color="transparent")
         controles.pack(fill="x", pady=(Espaco.LG, 0))
@@ -143,16 +147,15 @@ class TelaPresenca(Tela):
         card = Card(coluna, titulo="Chegadas")
         card.grid(row=1, column=0, sticky="nsew")
 
-        self.lista = ctk.CTkScrollableFrame(
-            card.corpo, fg_color="transparent", scrollbar_button_color=Cor.BORDA,
-        )
-        self.lista.pack(fill="both", expand=True)
+        # A lista e o estado vazio se alternam no mesmo espaço. O estado vazio
+        # fica fora da área rolável de propósito: dentro dela receberia só a
+        # altura do próprio conteúdo, e centralizaria numa faixa estreita no
+        # alto do card em vez de no card inteiro.
+        self.area_chegadas = ctk.CTkFrame(card.corpo, fg_color="transparent")
+        self.area_chegadas.pack(fill="both", expand=True)
 
-        self.vazio = EstadoVazio(
-            self.lista, "pessoas", "Ninguém registrado ainda",
-            "As presenças aparecem aqui assim que os rostos forem reconhecidos.",
-        )
-        self.vazio.pack(fill="both", expand=True)
+        self.lista = None
+        self.vazio = None
 
     # ===== CICLO DE VIDA =====
     def ao_entrar(self):
@@ -203,6 +206,8 @@ class TelaPresenca(Tela):
         self.reconhecedor.iniciar()
 
         self.camera_ligada = True
+        self.aviso_camera.pack_forget()
+        self.video.pack(fill="both", expand=True, padx=Espaco.SM, pady=Espaco.SM)
         self.botao_camera.configure(text="Parar câmera", fg_color=Cor.PERIGO,
                                     hover_color=Cor.PERIGO_HOVER)
         self.badge_camera.atualizar("Ao vivo", "sucesso")
@@ -216,7 +221,10 @@ class TelaPresenca(Tela):
         self.botao_camera.configure(text="Iniciar câmera", fg_color=Cor.SUCESSO,
                                     hover_color=Cor.SUCESSO_HOVER)
         self.badge_camera.atualizar("Parada", "neutro")
-        self.video.configure(image="", text="Câmera desligada")
+        self.video.configure(image="")
+        self.video.image = None
+        self.video.pack_forget()
+        self.aviso_camera.pack(fill="both", expand=True)
         self.app.status("Câmera parada", Cor.TEXTO_SECUNDARIO)
 
     def _proximo_frame(self):
@@ -248,7 +256,7 @@ class TelaPresenca(Tela):
 
         imagem = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         foto = ImageTk.PhotoImage(imagem)
-        self.video.configure(image=foto, text="")
+        self.video.configure(image=foto)
         self.video.image = foto  # Mantém a referência viva.
 
     # ===== PRESENÇAS =====
@@ -270,8 +278,10 @@ class TelaPresenca(Tela):
         self.app.status(f"{pessoa['nome']} registrado", Cor.SUCESSO)
 
     def _carregar_presencas(self):
-        for widget in self.lista.winfo_children():
+        """Monta a lista de chegadas, ou o aviso de que ninguém chegou."""
+        for widget in self.area_chegadas.winfo_children():
             widget.destroy()
+        self.lista = self.vazio = None
 
         self._presencas = (
             self.db.listar_presencas_evento(self.evento["id"]) if self.evento else []
@@ -279,11 +289,18 @@ class TelaPresenca(Tela):
 
         if not self._presencas:
             self.vazio = EstadoVazio(
-                self.lista, "pessoas", "Ninguém registrado ainda",
-                "As presenças aparecem aqui assim que os rostos forem reconhecidos.",
+                self.area_chegadas, "pessoas", "Ninguém registrado ainda",
+                "As presenças aparecem aqui assim que os rostos forem "
+                "reconhecidos.",
             )
             self.vazio.pack(fill="both", expand=True)
             return
+
+        self.lista = ctk.CTkScrollableFrame(
+            self.area_chegadas, fg_color="transparent",
+            scrollbar_button_color=Cor.BORDA,
+        )
+        self.lista.pack(fill="both", expand=True)
 
         for p in reversed(self._presencas):
             ItemLista(
@@ -292,8 +309,17 @@ class TelaPresenca(Tela):
             ).pack(fill="x", pady=(0, Espaco.SM))
 
     def _adicionar_item(self, nome, usuario_id, hora, confianca=None):
-        if self.vazio and self.vazio.winfo_exists():
-            self.vazio.destroy()
+        """Acrescenta uma chegada sem remontar a lista inteira."""
+        if self.lista is None:
+            # Primeira chegada: o aviso de vazio dá lugar à lista.
+            if self.vazio is not None:
+                self.vazio.destroy()
+                self.vazio = None
+            self.lista = ctk.CTkScrollableFrame(
+                self.area_chegadas, fg_color="transparent",
+                scrollbar_button_color=Cor.BORDA,
+            )
+            self.lista.pack(fill="both", expand=True)
 
         subtitulo = f"ID {usuario_id}"
         if confianca is not None:
