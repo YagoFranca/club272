@@ -38,3 +38,6 @@ Desktop.ini
 
 # Diagnostico de crash nativo
 data/ultima_falha.txt
+
+# Relatorio da autoverificacao
+verificacao.txt

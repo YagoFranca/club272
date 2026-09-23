@@ -191,12 +191,20 @@ class Detector:
         self.usar_haar = usar_haar
         self.refinar = refinar
         self.tamanho_minimo = tamanho_minimo
-        self._cascata = (
-            cv2.CascadeClassifier(
-                cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-            )
-            if usar_haar else None
-        )
+        self._cascata = None
+        if usar_haar:
+            caminho = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            cascata = cv2.CascadeClassifier(caminho)
+            # Um XML ausente não levanta erro: o classificador simplesmente
+            # nasce vazio e nunca acha rosto nenhum. Já aconteceu num
+            # empacotamento em que os XML não foram junto — o programa parecia
+            # funcionar e não reconhecia ninguém.
+            if cascata.empty():
+                print(f"Cascata Haar não carregou ({caminho}); "
+                      f"usando o detector HOG, mais lento.")
+                self.usar_haar = False
+            else:
+                self._cascata = cascata
 
     def detectar(self, rgb):
         """Devolve caixas no formato do face_recognition: (topo, dir, baixo, esq).

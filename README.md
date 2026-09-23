@@ -187,13 +187,50 @@ Nada de segredo no código. Tudo vem do `.env`:
 Sem `.env`, o sistema sobe offline: cadastro e reconhecimento funcionam, e os
 registros ficam pendentes até haver destino.
 
+## Distribuição
+
+```bash
+python empacotar.py
+```
+
+Gera `dist/272Club/` — pasta com executável e tudo de que ele precisa, sem
+exigir Python na máquina de destino. A esteira também **roda a
+autoverificação dentro do executável recém-gerado**: é o que pega um arquivo
+de dados esquecido no `.spec`, que não quebra a construção nem a abertura e só
+some na hora de reconhecer um rosto. Foi assim que descobrimos que os XML das
+cascatas Haar não estavam indo junto.
+
+Com o [Inno Setup](https://jrsoftware.org/isdl.php) instalado, sai também
+`272Club-x.y.z-instalador.exe`. Sem ele, um `.zip` da pasta.
+
+Modo pasta, e não arquivo único: o `--onefile` extrai ~450 MB para o disco a
+cada abertura, e o alvo é um Core 2 Duo.
+
+### Onde ficam os dados no executável
+
+Instalado em "Arquivos de Programas", gravar ao lado do executável falha por
+falta de permissão. Então há duas raízes:
+
+| | Em desenvolvimento | Empacotado |
+| --- | --- | --- |
+| Recursos (logo, modelo CSV) | raiz do projeto | dentro do pacote |
+| Dados (banco, fotos, backups, `.env`) | `data/` do projeto | `%LOCALAPPDATA%ºClub` |
+
+Desinstalar **não remove** os dados do usuário — é lá que estão o banco e os
+rostos.
+
 ## Verificação
 
 ```bash
+python run.py --verificar                  # checa a instalação inteira
 python -m compileall -q club272 run.py     # tudo compila
 python -m pyflakes club272/ run.py         # sem nomes indefinidos
-python -c "import club272.app"             # dependências no lugar
 ```
+
+`--verificar` roda sem abrir janela e grava um relatório ao lado dos dados:
+dependências, modelos do dlib, cascata Haar, permissão de escrita, banco,
+fonte de ícones, processo do encoder e câmera. É o primeiro comando a rodar
+numa máquina onde algo não funciona.
 
 ## Notas de manutenção
 

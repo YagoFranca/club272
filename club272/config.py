@@ -9,18 +9,44 @@ As credenciais são lidas do arquivo `.env` na raiz do projeto (veja
 """
 
 import os
+import sys
 from pathlib import Path
 
-# ===== CAMINHOS DO PROJETO =====
-# club272/config.py -> club272/ -> raiz do projeto
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ===== CAMINHOS =====
+# Duas raízes distintas, e a diferença só importa quando o programa está
+# empacotado:
+#
+#   RECURSOS_DIR  o que vem junto do programa e nunca muda (logo, modelo CSV).
+#                 No executável isso fica dentro do pacote, somente leitura.
+#   DADOS_DIR     o que o programa escreve (banco, fotos, backups, .env).
+#                 Instalado em "Arquivos de Programas", gravar ao lado do
+#                 executável falha por falta de permissão — então vai para a
+#                 pasta do usuário.
+EMPACOTADO = getattr(sys, "frozen", False)
 
-ASSETS_DIR = BASE_DIR / "club272" / "assets"
-DATA_DIR = BASE_DIR / "data"
+if EMPACOTADO:
+    RECURSOS_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    DADOS_DIR = Path(
+        os.environ.get("LOCALAPPDATA")
+        or Path.home() / "AppData" / "Local"
+    ) / "272Club"
+else:
+    # club272/config.py -> club272/ -> raiz do projeto
+    RECURSOS_DIR = Path(__file__).resolve().parent.parent
+    DADOS_DIR = RECURSOS_DIR
+
+# Mantido pelo nome antigo: muitos pontos do código ainda dizem BASE_DIR.
+BASE_DIR = DADOS_DIR
+
+ASSETS_DIR = RECURSOS_DIR / "club272" / "assets"
+DATA_DIR = DADOS_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
 PHOTOS_DIR = DATA_DIR / "photos"
 BACKUPS_DIR = DATA_DIR / "backups"
-TEMPLATES_DIR = BASE_DIR / "templates"
+
+# O modelo de planilha é gravado sob demanda, então mora no lado gravável.
+TEMPLATES_DIR = DADOS_DIR / "templates"
+TEMPLATES_RECURSO = RECURSOS_DIR / "templates"
 
 # `CLUB272_DB` aponta para outro arquivo — usado pelos testes de ponta a
 # ponta, e útil para experimentar sem tocar no banco de produção.
@@ -31,8 +57,8 @@ ICON_PATH = str(ASSETS_DIR / "272club.ico")
 
 
 def ensure_directories():
-    """Cria as pastas de dados caso ainda não existam."""
-    for folder in (DATA_DIR, IMAGES_DIR, PHOTOS_DIR, BACKUPS_DIR):
+    """Cria as pastas graváveis caso ainda não existam."""
+    for folder in (DATA_DIR, IMAGES_DIR, PHOTOS_DIR, BACKUPS_DIR, TEMPLATES_DIR):
         folder.mkdir(parents=True, exist_ok=True)
 
 
@@ -40,7 +66,11 @@ def ensure_directories():
 def _load_dotenv():
     """Carrega o `.env` da raiz. Usa python-dotenv se disponível, senão faz o
     parse manual (mantém o projeto rodando mesmo sem a dependência)."""
-    env_file = BASE_DIR / ".env"
+    # No lado gravável primeiro: é lá que o usuário edita depois de instalar.
+    env_file = next(
+        (c for c in (DADOS_DIR / ".env", RECURSOS_DIR / ".env") if c.exists()),
+        DADOS_DIR / ".env",
+    )
     try:
         from dotenv import load_dotenv
 
