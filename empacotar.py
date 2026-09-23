@@ -28,9 +28,13 @@ DIST = RAIZ / "dist"
 PASTA = DIST / "272Club"
 EXECUTAVEL = PASTA / "272Club.exe"
 
+# O instalador do Inno Setup oferece instalação por máquina ou por usuário —
+# o winget escolhe a segunda, que vai para %LOCALAPPDATA%\Programs.
 CAMINHOS_INNO = (
     r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     r"C:\Program Files\Inno Setup 6\ISCC.exe",
+    os.path.expandvars(r"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe"),
+    os.path.expandvars(r"%PROGRAMFILES%\Inno Setup 6\ISCC.exe"),
 )
 
 
