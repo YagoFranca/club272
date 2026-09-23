@@ -85,6 +85,7 @@ class TelaMembros(Tela):
         card = Card(self, titulo="Detalhes")
         card.grid(row=1, column=1, sticky="nsew")
         self.area_detalhe = card.corpo
+        self.form = None
         self._mostrar_sem_selecao()
 
     # ===== CICLO DE VIDA =====
@@ -151,6 +152,7 @@ class TelaMembros(Tela):
     def _limpar_detalhe(self):
         for widget in self.area_detalhe.winfo_children():
             widget.destroy()
+        self.form = None
         self._confirmando_remocao = False
 
     def _mostrar_sem_selecao(self):
@@ -166,46 +168,61 @@ class TelaMembros(Tela):
 
         tem_rosto = deserialize_encoding(membro["encoding"]) is not None
 
-        cabecalho = ctk.CTkFrame(self.area_detalhe, fg_color="transparent")
+        # O formulário rola: com foto, três campos, resumo e dois botões, ele
+        # não cabe em janela pequena — e sem rolagem o Tk esmaga o que sobra.
+        # Já aconteceu de os botões de salvar e remover ficarem com 1 pixel.
+        self.form = ctk.CTkScrollableFrame(
+            self.area_detalhe, fg_color="transparent",
+            scrollbar_button_color=Cor.BORDA,
+        )
+        self.form.pack(fill="both", expand=True)
+
+        # Cabeçalho na horizontal: a foto empilhada sobre ID e etiqueta
+        # ocupava 188 px de altura, quase metade do painel.
+        cabecalho = ctk.CTkFrame(self.form, fg_color="transparent")
         cabecalho.pack(fill="x", pady=(0, Espaco.LG))
 
         # A foto é localizada pelo ID, não pelo caminho gravado no banco: esse
         # caminho é da máquina onde o cadastro foi feito e não existe em
         # nenhuma outra.
-        foto = foto_de_membro(caminho_da_foto(membro), tamanho=120)
+        foto = foto_de_membro(caminho_da_foto(membro), tamanho=88)
         if foto is not None:
             rotulo_foto = ctk.CTkLabel(cabecalho, image=foto, text="")
             rotulo_foto.image = foto  # mantém a referência viva
-            rotulo_foto.pack(pady=(0, Espaco.MD))
+            rotulo_foto.pack(side="left")
         else:
             ctk.CTkLabel(
                 cabecalho, text=(membro["name"] or "?")[:1].upper(),
-                font=(Fonte.FAMILIA, 44, "bold"), text_color=Cor.ACENTO,
+                font=(Fonte.FAMILIA, 32, "bold"), text_color=Cor.ACENTO,
                 fg_color=Cor.ACENTO_FUNDO, corner_radius=Raio.PILULA,
-                width=120, height=120,
-            ).pack(pady=(0, Espaco.MD))
+                width=88, height=88,
+            ).pack(side="left")
+
+        ao_lado = ctk.CTkFrame(cabecalho, fg_color="transparent")
+        ao_lado.pack(side="left", fill="both", expand=True, padx=(Espaco.MD, 0))
 
         ctk.CTkLabel(
-            cabecalho, text=membro["id"], font=Fonte.CODIGO,
-            text_color=Cor.ACENTO,
-        ).pack()
+            ao_lado, text=membro["id"], font=Fonte.CODIGO,
+            text_color=Cor.ACENTO, anchor="w",
+        ).pack(anchor="w", pady=(Espaco.LG, 0))
 
-        Badge(cabecalho, "rosto cadastrado" if tem_rosto else "sem rosto",
-              "sucesso" if tem_rosto else "alerta").pack(pady=(Espaco.XS, 0))
+        Badge(ao_lado, "rosto cadastrado" if tem_rosto else "sem rosto",
+              "sucesso" if tem_rosto else "alerta").pack(anchor="w",
+                                                         pady=(Espaco.XS, 0))
 
-        self.campo_nome = Campo(self.area_detalhe, "Nome")
+        self.campo_nome = Campo(self.form, "Nome")
         self.campo_nome.pack(fill="x", pady=(0, Espaco.SM))
         self.campo_nome.definir(membro["name"])
 
-        self.campo_grupo = Campo(self.area_detalhe, "Grupo")
+        self.campo_grupo = Campo(self.form, "Grupo")
         self.campo_grupo.pack(fill="x", pady=(0, Espaco.SM))
         self.campo_grupo.definir(membro["group_name"] or "")
 
-        self.campo_telefone = Campo(self.area_detalhe, "Telefone")
+        self.campo_telefone = Campo(self.form, "Telefone")
         self.campo_telefone.pack(fill="x", pady=(0, Espaco.MD))
         self.campo_telefone.definir(membro["phone"] or "")
 
-        resumo = ctk.CTkFrame(self.area_detalhe, fg_color=Cor.SUPERFICIE_ALTA,
+        resumo = ctk.CTkFrame(self.form, fg_color=Cor.SUPERFICIE_ALTA,
                               corner_radius=Raio.MD)
         resumo.pack(fill="x", pady=(0, Espaco.LG))
 
@@ -222,8 +239,8 @@ class TelaMembros(Tela):
             ctk.CTkLabel(linha, text=str(valor), font=Fonte.PEQUENO,
                          text_color=Cor.TEXTO_SECUNDARIO).pack(side="right")
 
-        acoes = ctk.CTkFrame(self.area_detalhe, fg_color="transparent")
-        acoes.pack(fill="x", side="bottom")
+        acoes = ctk.CTkFrame(self.form, fg_color="transparent")
+        acoes.pack(fill="x", pady=(Espaco.SM, 0))
 
         Botao(acoes, "Salvar alterações", "primario",
               command=self._salvar).pack(fill="x", pady=(0, Espaco.SM))
