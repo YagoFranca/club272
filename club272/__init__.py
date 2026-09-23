@@ -4,7 +4,7 @@ import faulthandler
 import os
 import sys
 
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 
 
 def _ativar_diagnostico_de_falha():
