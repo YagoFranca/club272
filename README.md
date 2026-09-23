@@ -27,6 +27,7 @@ Uma janela, com navegação lateral entre as telas.
 │   │   ├── database.py         # SQLite + sincronização
 │   │   ├── encoding.py         # serialização de encodings faciais
 │   │   ├── recognition.py      # câmera, detecção e identificação
+│   │   ├── fotos.py            # localiza a foto de cada membro
 │   │   ├── exportacao.py       # relatórios em Excel e CSV
 │   │   └── supabase.py         # cliente da API REST
 │   ├── ui/
@@ -54,7 +55,7 @@ instalada, o componente cai num marcador neutro em vez de um retângulo vazio.
 | --- | --- |
 | **Presença** | Reconhece rostos ao vivo e registra presença no evento aberto |
 | **Eventos** | Abre e encerra eventos, histórico, listas de presença e relatórios |
-| **Membros** | Lista com busca, edição e remoção de cadastros |
+| **Membros** | Lista com busca, foto, edição e remoção de cadastros |
 | **Cadastro** | Registro individual capturando o rosto pela webcam |
 | **Sincronização** | Estado da nuvem, envio/recebimento, exportação de membros |
 
@@ -158,6 +159,16 @@ IDs automáticos seguem `TSU_XXXXX`, a partir de `TSU_10000`.
 O arquivo atual traz também `historico_detalhado`, `config_sistema` e as
 colunas `email`/`is_deleted`, resquícios de uma versão antiga que nenhum código
 usa. Foram preservados, mas não fazem parte do schema criado do zero.
+
+### Fotos dos membros
+
+A foto de alguém é sempre `<id>.<extensão>` dentro de `data/images/`, e é por
+aí que a interface a encontra — não pelo `image_path` do banco. Esse campo
+guarda o caminho absoluto da máquina onde o cadastro foi feito, e ao levar o
+banco para outro computador todos apontariam para o vazio.
+
+O reconhecimento não depende das fotos: ele usa o `encoding` guardado no
+banco. As fotos servem para exibição e para refazer um cadastro, se preciso.
 
 ### Importar a base do sistema antigo
 

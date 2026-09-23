@@ -10,6 +10,8 @@ import customtkinter as ctk
 
 from club272.core.database import DatabaseManager
 from club272.core.encoding import deserialize_encoding
+from club272.core.fotos import caminho_da_foto
+from club272.ui.assets import foto_de_membro
 from club272.ui.components import (
     Badge,
     Botao,
@@ -167,14 +169,29 @@ class TelaMembros(Tela):
         cabecalho = ctk.CTkFrame(self.area_detalhe, fg_color="transparent")
         cabecalho.pack(fill="x", pady=(0, Espaco.LG))
 
+        # A foto é localizada pelo ID, não pelo caminho gravado no banco: esse
+        # caminho é da máquina onde o cadastro foi feito e não existe em
+        # nenhuma outra.
+        foto = foto_de_membro(caminho_da_foto(membro), tamanho=120)
+        if foto is not None:
+            rotulo_foto = ctk.CTkLabel(cabecalho, image=foto, text="")
+            rotulo_foto.image = foto  # mantém a referência viva
+            rotulo_foto.pack(pady=(0, Espaco.MD))
+        else:
+            ctk.CTkLabel(
+                cabecalho, text=(membro["name"] or "?")[:1].upper(),
+                font=(Fonte.FAMILIA, 44, "bold"), text_color=Cor.ACENTO,
+                fg_color=Cor.ACENTO_FUNDO, corner_radius=Raio.PILULA,
+                width=120, height=120,
+            ).pack(pady=(0, Espaco.MD))
+
         ctk.CTkLabel(
             cabecalho, text=membro["id"], font=Fonte.CODIGO,
-            text_color=Cor.ACENTO, anchor="w",
-        ).pack(anchor="w")
+            text_color=Cor.ACENTO,
+        ).pack()
 
         Badge(cabecalho, "rosto cadastrado" if tem_rosto else "sem rosto",
-              "sucesso" if tem_rosto else "alerta").pack(anchor="w",
-                                                         pady=(Espaco.XS, 0))
+              "sucesso" if tem_rosto else "alerta").pack(pady=(Espaco.XS, 0))
 
         self.campo_nome = Campo(self.area_detalhe, "Nome")
         self.campo_nome.pack(fill="x", pady=(0, Espaco.SM))

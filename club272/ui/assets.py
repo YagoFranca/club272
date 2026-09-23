@@ -7,6 +7,7 @@ quadrado branco, então recortamos o círculo aqui, uma vez, em vez de pedir uma
 nova arte.
 """
 
+import os
 from functools import lru_cache
 
 import customtkinter as ctk
@@ -51,6 +52,40 @@ def _abrir_logo_circular(tamanho):
     original.putalpha(mascara)
 
     return original.resize((tamanho, tamanho), Image.Resampling.LANCZOS)
+
+
+def foto_de_membro(caminho, tamanho=140):
+    """Foto do membro, recortada em círculo, como `CTkImage`.
+
+    Corta pelo centro antes de redimensionar: fotos de webcam são mais largas
+    que altas, e encolher a imagem inteira deixaria o rosto achatado.
+    """
+    if not caminho or not os.path.exists(caminho):
+        return None
+
+    try:
+        original = Image.open(caminho).convert("RGBA")
+    except (OSError, ValueError):
+        return None
+
+    largura, altura = original.size
+    lado = min(largura, altura)
+    esquerda = (largura - lado) // 2
+    # Um terço acima do centro: em foto de rosto o queixo pesa menos que a
+    # testa, e cortar pelo meio exato costuma decepar a cabeça.
+    topo = max(0, (altura - lado) // 3)
+    original = original.crop((esquerda, topo, esquerda + lado, topo + lado))
+
+    grande = tamanho * _SUPERAMOSTRAGEM
+    original = original.resize((grande, grande), Image.Resampling.LANCZOS)
+
+    mascara = Image.new("L", (grande, grande), 0)
+    ImageDraw.Draw(mascara).ellipse((0, 0, grande - 1, grande - 1), fill=255)
+    original.putalpha(mascara)
+
+    recortada = original.resize((tamanho, tamanho), Image.Resampling.LANCZOS)
+    return ctk.CTkImage(light_image=recortada, dark_image=recortada,
+                        size=(tamanho, tamanho))
 
 
 def aplicar_icone_janela(janela, tamanho=64):
