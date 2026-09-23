@@ -181,7 +181,7 @@ class TelaEventos(Tela):
         if not self.eventos:
             EstadoVazio(
                 self.area_lista, "calendario", "Nenhum evento ainda",
-                "Abra um evento na tela de Presença para começar a registrar.",
+                "Abra um evento no campo acima para começar a registrar.",
             ).pack(fill="both", expand=True)
             self.tabela = None
             self.app.status("Nenhum evento registrado")

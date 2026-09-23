@@ -220,24 +220,34 @@ class ItemLista(ctk.CTkFrame):
 
 
 class EstadoVazio(ctk.CTkFrame):
-    """Placeholder para listas sem conteúdo — evita a área morta e sem
-    explicação que o sistema mostra hoje."""
+    """Placeholder para áreas sem conteúdo — evita a região morta e sem
+    explicação que o sistema mostrava antes.
+
+    O conteúdo fica centralizado no espaço disponível, não encostado no topo:
+    num card alto e vazio, texto no topo parece erro de layout.
+    """
 
     def __init__(self, master, icone, titulo, descricao="", **kwargs):
         kwargs.setdefault("fg_color", "transparent")
         super().__init__(master, **kwargs)
 
-        Icone(self, icone, tamanho=40, cor=Cor.TEXTO_APAGADO).pack(
-            pady=(Espaco.XXL, Espaco.MD)
+        # `place` com âncora ao centro é o que centraliza nos dois eixos sem
+        # depender da altura do conteúdo.
+        centro = ctk.CTkFrame(self, fg_color="transparent")
+        centro.place(relx=0.5, rely=0.5, anchor="center")
+
+        Icone(centro, icone, tamanho=40, cor=Cor.TEXTO_APAGADO).pack(
+            pady=(0, Espaco.MD)
         )
         ctk.CTkLabel(
-            self, text=titulo, font=Fonte.CORPO_FORTE, text_color=Cor.TEXTO_SECUNDARIO,
+            centro, text=titulo, font=Fonte.CORPO_FORTE,
+            text_color=Cor.TEXTO_SECUNDARIO, justify="center",
         ).pack()
         if descricao:
             ctk.CTkLabel(
-                self, text=descricao, font=Fonte.PEQUENO,
-                text_color=Cor.TEXTO_APAGADO, wraplength=260,
-            ).pack(pady=(Espaco.XS, Espaco.XXL))
+                centro, text=descricao, font=Fonte.PEQUENO,
+                text_color=Cor.TEXTO_APAGADO, wraplength=280, justify="center",
+            ).pack(pady=(Espaco.XS, 0))
 
 
 class Campo(ctk.CTkFrame):
@@ -346,11 +356,24 @@ class Tabela(ctk.CTkScrollableFrame):
         cabecalho = ctk.CTkFrame(self, fg_color="transparent", height=26)
         cabecalho.pack(fill="x", pady=(0, Espaco.XS))
         for indice, titulo in enumerate(colunas):
-            cabecalho.grid_columnconfigure(indice, weight=self.pesos[indice])
+            self._configurar_coluna(cabecalho, indice)
             ctk.CTkLabel(
                 cabecalho, text=titulo.upper(), font=Fonte.MICRO,
                 text_color=Cor.TEXTO_APAGADO, anchor="w",
             ).grid(row=0, column=indice, sticky="ew", padx=Espaco.MD)
+
+    def _configurar_coluna(self, quadro, indice):
+        """Largura da coluna pelo peso, e não pelo conteúdo.
+
+        Cada linha é um grid próprio. Sem `uniform`, o Tkinter dá a cada
+        coluna ao menos a largura do texto dela antes de repartir a sobra —
+        então uma linha com nome curto e outra com nome longo acabavam com
+        colunas de tamanhos diferentes, e nada se alinhava na vertical.
+        Com `uniform`, a proporção vem só do peso, igual em toda linha.
+        """
+        quadro.grid_columnconfigure(
+            indice, weight=self.pesos[indice], uniform="colunas"
+        )
 
     def limpar(self):
         for linha in self._linhas:
@@ -368,7 +391,7 @@ class Tabela(ctk.CTkScrollableFrame):
         linha.dado = dado
 
         for indice, valor in enumerate(valores):
-            linha.grid_columnconfigure(indice, weight=self.pesos[indice])
+            self._configurar_coluna(linha, indice)
             ctk.CTkLabel(
                 linha, text=str(valor), font=Fonte.PEQUENO,
                 text_color=(tons or {}).get(indice, Cor.TEXTO), anchor="w",
